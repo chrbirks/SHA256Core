@@ -6,7 +6,7 @@
 -- Author     :   <chrbi_000@SURFACE>
 -- Company    : 
 -- Created    : 2016-04-08
--- Last update: 2016-04-13
+-- Last update: 2016-04-24
 -- Platform   : 
 -- Standard   : VHDL'08
 -------------------------------------------------------------------------------
@@ -32,17 +32,25 @@ end entity sha256core_wrapper;
 architecture str of sha256core_wrapper is
   constant c_msg_size : integer := 256;
 
-  signal message : unsigned(c_msg_size-1 downto 0) := (others => '0');
-  signal digest  : unsigned(255 downto 0)          := (others => '0');
+  signal message       : unsigned(c_msg_size-1 downto 0) := (others => '0');
+  signal message_valid : std_logic                       := '1';
+  signal message_ready : std_logic;
+  signal digest        : unsigned(255 downto 0)          := (others => '0');
+  signal digest_valid  : std_logic;
+  signal digest_ready  : std_logic                       := '1';
 begin
 
   i_sha256core_top : entity work.sha256core_top
     generic map (
       g_msg_size => c_msg_size)
     port map (
-      clk_200mhz => clk_200mhz,
-      reset    => reset_n,
-      message    => message,
-      digest     => digest);
+      clk           => clk_200mhz,
+      reset         => reset_n,
+      message       => message,
+      message_valid => message_valid,
+      message_ready => message_ready,
+      digest        => digest,
+      digest_valid  => digest_valid,
+      digest_ready  => digest_ready);
 
 end architecture str;

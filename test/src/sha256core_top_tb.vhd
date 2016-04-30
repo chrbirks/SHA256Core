@@ -6,7 +6,7 @@
 -- Author     :   <chrbi_000@SURFACE>
 -- Company    :
 -- Created    : 2016-04-08
--- Last update: 2016-04-13
+-- Last update: 2016-04-24
 -- Platform   :
 -- Standard   : VHDL'93/02
 -------------------------------------------------------------------------------
@@ -36,15 +36,19 @@ architecture bhv of sha256core_top_tb is
   constant c_200mhz_clk_period : time := 5 ns;
 
   -- component generics
-  constant c_msg_size : integer := 256;
+  constant c_msg_size : integer := 24;--256;
 
   -- component ports
-  signal reset   : std_logic;
-  signal message : unsigned(c_msg_size-1 downto 0);
-  signal digest  : unsigned(255 downto 0);
+  signal reset         : std_logic;
+  signal message       : unsigned(c_msg_size-1 downto 0) := (others => '0');
+  signal message_valid : std_logic                       := '0';
+  signal message_ready : std_logic;
+  signal digest        : unsigned(255 downto 0);
+  signal digest_valid  : std_logic;
+  signal digest_ready  : std_logic                       := '0';
 
   -- clock
-  signal clk_200mhz_tb : std_logic := '1';
+  signal clk_200mhz_tb : std_logic := '0';
 
 begin  -- architecture bhv
 
@@ -53,10 +57,14 @@ begin  -- architecture bhv
     generic map (
       g_msg_size => c_msg_size)
     port map (
-      clk_200mhz => clk_200mhz_tb,
-      reset    => reset,
-      message    => message,
-      digest     => digest);
+      clk           => clk_200mhz_tb,   -- in
+      reset         => reset,           -- in
+      message       => message,         -- in
+      message_valid => message_valid,   -- in
+      message_ready => message_ready,   -- out
+      digest        => digest,          -- out
+      digest_valid  => digest_valid,    -- out
+      digest_ready  => digest_ready);   -- in
 
   -- clock generation
   clk_200mhz_tb <= not clk_200mhz_tb after c_200mhz_clk_period/2;
@@ -65,13 +73,27 @@ begin  -- architecture bhv
   WaveGen_Proc : process
   begin
     -- insert signal assignments here
+    reset        <= '1';
+    digest_ready <= '0';
+    --message <= x"0632A8F7E9766AB17677200AA307A5BCBBC459C7A9DDC87175C1FAD78FA46571"; -- Random
+    message <= x"616263"; -- "abc"
+
+    wait until clk_200mhz_tb = '1';
     reset <= '0';
 
     wait until clk_200mhz_tb = '1';
-    message <= x"1111111111111111111111111111111111111111111111111111111111111F00";
+    if (message_ready = '0') then
+      wait until clk_200mhz_tb = '1' and message_ready = '1';
+    end if;
+
+    message_valid <= '1';
+    digest_ready  <= '1';
 
     wait until clk_200mhz_tb = '1';
-    wait for 10*c_200mhz_clk_period;
+    message_valid <= '0';
+
+    --wait until clk_200mhz_tb = '1';
+    wait for 100*c_200mhz_clk_period;
 
     report "Simulation finished" severity failure;
   end process WaveGen_Proc;
