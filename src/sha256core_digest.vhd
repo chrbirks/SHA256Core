@@ -22,6 +22,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.package_sha256_common.all;
 
 entity digester is
   generic (
@@ -52,35 +53,6 @@ entity digester is
 end entity digester;
 
 architecture rtl of digester is
-
-  function sigma_0_upper (
-    x : unsigned(31 downto 0))
-    return unsigned is
-  begin
-    return rotate_right(x, 2) xor rotate_right(x, 13) xor rotate_right(x, 22);
-  end sigma_0_upper;
-
-  function sigma_1_upper (
-    x : unsigned(31 downto 0))
-    return unsigned is
-  begin
-    return rotate_right(x, 6) xor rotate_right(x, 11) xor rotate_right(x, 25);
-  end sigma_1_upper;
-
-  function Ch (
-    x, y, z : unsigned(31 downto 0))
-    return unsigned is
-  begin
-    return (x and y) or ((not x) and z);
-  end Ch;
-
-  function Maj (
-    x, y, z : unsigned(31 downto 0))
-    return unsigned is
-  begin
-    return (x and y) or (x and z) or (y and z);
-  end Maj;
-
 begin
 
   process(clk) is
