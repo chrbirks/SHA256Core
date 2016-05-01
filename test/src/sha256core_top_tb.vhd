@@ -6,9 +6,9 @@
 -- Author     :   <chrbi_000@SURFACE>
 -- Company    :
 -- Created    : 2016-04-08
--- Last update: 2016-04-24
+-- Last update: 2016-05-01
 -- Platform   :
--- Standard   : VHDL'93/02
+-- Standard   : VHDL'08
 -------------------------------------------------------------------------------
 -- Description:
 -------------------------------------------------------------------------------
@@ -16,7 +16,7 @@
 -------------------------------------------------------------------------------
 -- Revisions  :
 -- Date        Version  Author  Description
--- 2016-04-08  1.0      chrbi_000       Created
+-- 2016-04-08  1.0      chrbirks       Created
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -36,7 +36,7 @@ architecture bhv of sha256core_top_tb is
   constant c_200mhz_clk_period : time := 5 ns;
 
   -- component generics
-  constant c_msg_size : integer := 24;--256;
+  constant c_msg_size : integer := 24;  --256;
 
   -- component ports
   signal reset         : std_logic;
@@ -72,16 +72,15 @@ begin  -- architecture bhv
   -- waveform generation
   WaveGen_Proc : process
   begin
-    -- insert signal assignments here
-    reset        <= '1';
-    digest_ready <= '0';
-    --message <= x"0632A8F7E9766AB17677200AA307A5BCBBC459C7A9DDC87175C1FAD78FA46571"; -- Random
-    message <= x"616263"; -- "abc"
+    reset   <= '1';
+    --digest_ready <= '0';
+    message <= x"616263";               -- "abc"
 
     wait until clk_200mhz_tb = '1';
     reset <= '0';
 
     wait until clk_200mhz_tb = '1';
+
     if (message_ready = '0') then
       wait until clk_200mhz_tb = '1' and message_ready = '1';
     end if;
@@ -90,11 +89,20 @@ begin  -- architecture bhv
     digest_ready  <= '1';
 
     wait until clk_200mhz_tb = '1';
+
     message_valid <= '0';
 
-    --wait until clk_200mhz_tb = '1';
-    wait for 100*c_200mhz_clk_period;
+    wait until digest_valid = '1';
+    report "signal digest is " & integer'image(to_integer(digest));
+--    report "      and ref is " & integer'image(to_integer(x"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
+    assert digest = x"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" report "Wrong digest!" severity failure;
 
+    -- TODO: Test new message in next clock cycle
+    --message <= x"636261"; -- "cba"
+    -- TODO: assert that digest = 6d970874d0db767a7058798973f22cf6589601edab57996312f2ef7b56e5584d
+
+    -- End testbench
+    wait for 100*c_200mhz_clk_period;
     report "Simulation finished" severity failure;
   end process WaveGen_Proc;
 

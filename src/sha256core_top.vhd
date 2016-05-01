@@ -6,7 +6,7 @@
 -- Author     :   <chrbi_000@SURFACE>
 -- Company    :
 -- Created    : 2016-04-08
--- Last update: 2016-04-24
+-- Last update: 2016-05-01
 -- Platform   :
 -- Standard   : VHDL'08
 -------------------------------------------------------------------------------
@@ -129,18 +129,18 @@ architecture str of sha256core_top is
   --signal message_zero_padded   : unsigned(c_block_size-1 downto 0) := (others => '0');
   --signal message_length_padded : unsigned(c_block_size-1 downto 0) := (others => '0');
 
-  
+
   signal w : t_word_array := (others => (others => '0'));
 
   type t_working_word_array is array (0 to 64) of unsigned(31 downto 0);
-  signal a                              : t_working_word_array  := (0      => c_h0, others => (others => '0'));
-  signal b                              : t_working_word_array  := (0      => c_h1, others => (others => '0'));
-  signal c                              : t_working_word_array  := (0      => c_h2, others => (others => '0'));
-  signal d                              : t_working_word_array  := (0      => c_h3, others => (others => '0'));
-  signal e                              : t_working_word_array  := (0      => c_h4, others => (others => '0'));
-  signal f                              : t_working_word_array  := (0      => c_h5, others => (others => '0'));
-  signal g                              : t_working_word_array  := (0      => c_h6, others => (others => '0'));
-  signal h                              : t_working_word_array  := (0      => c_h7, others => (others => '0'));
+  signal a                              : t_working_word_array  := (0      => c_H0, others => (others => '0'));
+  signal b                              : t_working_word_array  := (0      => c_H1, others => (others => '0'));
+  signal c                              : t_working_word_array  := (0      => c_H2, others => (others => '0'));
+  signal d                              : t_working_word_array  := (0      => c_H3, others => (others => '0'));
+  signal e                              : t_working_word_array  := (0      => c_H4, others => (others => '0'));
+  signal f                              : t_working_word_array  := (0      => c_H5, others => (others => '0'));
+  signal g                              : t_working_word_array  := (0      => c_H6, others => (others => '0'));
+  signal h                              : t_working_word_array  := (0      => c_H7, others => (others => '0'));
   signal T_1, T_2                       : t_working_word_array  := (others => (others => '0'));
   signal H0, H1, H2, H3, H4, H5, H6, H7 : unsigned(31 downto 0) := (others => '0');
 
@@ -158,53 +158,33 @@ architecture str of sha256core_top is
     return rotate_right(x, 17) xor rotate_right(x, 19) xor shift_right(x, 10);
   end sigma_1_lower;
 
-  --function sigma_0_upper (
-  --  x : unsigned(31 downto 0))
-  --  return unsigned is
-  --begin
-  --  return rotate_right(x, 2) xor rotate_right(x, 13) xor rotate_right(x, 22);
-  --end sigma_0_upper;
-
-  --function sigma_1_upper (
-  --  x : unsigned(31 downto 0))
-  --  return unsigned is
-  --begin
-  --  return rotate_right(x, 6) xor rotate_right(x, 11) xor rotate_right(x, 25);
-  --end sigma_1_upper;
-
-  --function Ch (
-  --  x, y, z : unsigned(31 downto 0))
-  --  return unsigned is
-  --begin
-  --  return (x and y) or ((not x) and z);
-  --end Ch;
-
-  --function Maj (
-  --  x, y, z : unsigned(31 downto 0))
-  --  return unsigned is
-  --begin
-  --  return (x and y) or (x and z) or (y and z);
-  --end Maj;
-
-
 begin
 
   assert g_msg_size < 447 report "Input message wrong length" severity failure;
-
+  
   p_state_memory : process(clk) is
   begin
     if (rising_edge(clk)) then
 
       cur_state <= next_state;
-      counter   <= counter + 1;
+
+      counter      <= counter + 1;
+      digest_valid <= '0';
+
+      if (counter = 66) then
+        counter      <= 0;
+        digest_valid <= '1';
+      end if;
 
       if (reset = '1') then
-        cur_state <= s_init;
-        counter   <= 0;
+        cur_state    <= s_init;
+        counter      <= 0;
+        digest_valid <= '0';
       end if;
     --
     end if;
   end process p_state_memory;
+  
 
   p_state_logic : process(cur_state, message_valid)
   begin
@@ -228,6 +208,11 @@ begin
     end case;
   end process p_state_logic;
 
+  -----------------------------------------------------------------------------
+  -- Pipelining calculation of all working variables.
+  --
+  -- IMPORTANT: input is i, output is i+1, so final output is a(64), b(64), etc.
+  -----------------------------------------------------------------------------
   digest_loop : for i in 0 to 63 generate
   begin
     i_digester : entity work.digester
@@ -266,68 +251,39 @@ begin
       -- Cycle 1: Pad message
       message_zero_padded := message & '1' & c_zeros & to_unsigned(g_msg_size, c_length_size);
 
-      -- Cycle 1: Prepare message schedule
+      -- Cycle 1: Prepare message schedule, FIXME: convert to for-generate?
       for t in 0 to 15 loop
-        --w(t) := message_zero_padded(t*32+31 downto t*32); -- FIXME: reverse endianess
         w(t) <= message_zero_padded(message_zero_padded'left - t*32 downto message_zero_padded'left - t*32 - 31);
       end loop;
       for t in 16 to 63 loop
-        w(t) <= sigma_1_lower(w(t-2) + w(t-7) + sigma_0_lower(w(t-15)) + w(t-16));
+        w(t) <= sigma_1_lower(w(t-2)) + w(t-7) + sigma_0_lower(w(t-15)) + w(t-16);
       end loop;
 
-      -- Cycle 1: Assign working variables
---      a <= c_H0;
---      b <= c_H1;
---      c <= c_H2;
---      d <= c_H3;
---      e <= c_H4;
---      f <= c_H5;
---      g <= c_H6;
---      h <= c_H7;
+      -- Cycle 66: Compute the intermediate hash value
+      H0 <= a(64) + c_H0;
+      H1 <= b(64) + c_H1;
+      H2 <= c(64) + c_H2;
+      H3 <= d(64) + c_H3;
+      H4 <= e(64) + c_H4;
+      H5 <= f(64) + c_H5;
+      H6 <= g(64) + c_H6;
+      H7 <= h(64) + c_H7;
 
-      -- For t = 0..63
-      -- FIXME: must be done in clock cycle 2..2+64
-      --for t in 0 to 63 loop
-      --T_1 <= h + sigma_1_upper(e) + Ch(e, f, g) + c_K(t) + w(t);
-      --T_2 <= sigma_0_upper(a) + Maj(a, b, c);
-      --h   <= g;
-      --g   <= f;
-      --f   <= e;
-      --e   <= d + T_1;
-      --d   <= c;
-      --c   <= b;
-      --b   <= a;
-      --a   <= T_1 + T_2;
-      --end loop;
-
-
-
-      -- Cycle 67(?): Compute the intermediate hash value
-      H0 <= a(63) + c_H0;
-      H1 <= b(63) + c_H1;
-      H2 <= c(63) + c_H2;
-      H3 <= d(63) + c_H3;
-      H4 <= e(63) + c_H4;
-      H5 <= f(63) + c_H5;
-      H6 <= g(63) + c_H6;
-      H7 <= h(63) + c_H7;
-
-      -- Cycle 5: Concatenate the digest
-      digest       <= H0 & H1 & H2 & H3 & H4 & H5 & H6 & H7;
-      digest_valid <= '1';
+      -- Cycle 67: Concatenate the digest
+      digest <= H0 & H1 & H2 & H3 & H4 & H5 & H6 & H7;
 
       if (reset = '1') then
         message_zero_padded := (others => '0');
         w                   <= (others => (others => '0'));
 
-        H0 <= c_H0;
-        H1 <= c_H1;
-        H2 <= c_H2;
-        H3 <= c_H3;
-        H4 <= c_H4;
-        H5 <= c_H5;
-        H6 <= c_H6;
-        H7 <= c_H7;
+        a(0) <= c_H0;
+        b(0) <= c_H1;
+        c(0) <= c_H2;
+        d(0) <= c_H3;
+        e(0) <= c_H4;
+        f(0) <= c_H5;
+        g(0) <= c_H6;
+        h(0) <= c_H7;
       end if;
     end if;
 

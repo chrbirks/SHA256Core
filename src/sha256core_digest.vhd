@@ -6,9 +6,9 @@
 -- Author     :   <chrbirks@CHRBIRKS-PC>
 -- Company    : 
 -- Created    : 2016-04-24
--- Last update: 2016-04-24
+-- Last update: 2016-05-01
 -- Platform   : 
--- Standard   : VHDL'93/02
+-- Standard   : VHDL'08
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -84,18 +84,22 @@ architecture rtl of digester is
 begin
 
   process(clk) is
+    variable T_1, T_2 : unsigned(31 downto 0);
   begin
     if (rising_edge(clk)) then
-      T_1_out <= h_in + sigma_1_upper(e_in) + Ch(e_in, f_in, g_in) + K + w;
-      T_2_out <= sigma_0_upper(a_in) + Maj(a_in, b_in, c_in);
+      T_1 := h_in + sigma_1_upper(e_in) + Ch(e_in, f_in, g_in) + K + w;
+      T_2 := sigma_0_upper(a_in) + Maj(a_in, b_in, c_in);
+
+      T_1_out <= T_1;
+      T_2_out <= T_2;
       h_out   <= g_in;
       g_out   <= f_in;
       f_out   <= e_in;
-      e_out   <= d_in + T_1_in;
+      e_out   <= d_in + T_1;
       d_out   <= c_in;
       c_out   <= b_in;
       b_out   <= a_in;
-      a_out   <= T_1_in + T_2_in;
+      a_out   <= T_1 + T_2;
     end if;
   end process;
 
