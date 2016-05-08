@@ -6,7 +6,7 @@
 -- Author     :   <chrbi_000@SURFACE>
 -- Company    :
 -- Created    : 2016-04-08
--- Last update: 2016-05-01
+-- Last update: 2016-05-08
 -- Platform   :
 -- Standard   : VHDL'08
 -------------------------------------------------------------------------------
@@ -53,7 +53,7 @@ architecture bhv of sha256core_top_tb is
 begin  -- architecture bhv
 
   -- component instantiation
-  DUT : entity work.sha256core_top
+  DUT : entity work.sha256core_top(rtl_3)
     generic map (
       g_msg_size => c_msg_size)
     port map (
@@ -77,9 +77,13 @@ begin  -- architecture bhv
     message <= x"616263";               -- "abc"
 
     wait until clk_200mhz_tb = '1';
+    wait until clk_200mhz_tb = '1';
+    wait until clk_200mhz_tb = '1';
+    wait until clk_200mhz_tb = '1';
+    wait until clk_200mhz_tb = '1';
     reset <= '0';
 
-    wait until clk_200mhz_tb = '1';
+    --wait until clk_200mhz_tb = '1';
 
     if (message_ready = '0') then
       wait until clk_200mhz_tb = '1' and message_ready = '1';
@@ -93,7 +97,7 @@ begin  -- architecture bhv
     message_valid <= '0';
 
     wait until digest_valid = '1';
-    report "signal digest is " & integer'image(to_integer(digest));
+    --report "signal digest is " & integer'image(to_integer(digest));
 --    report "      and ref is " & integer'image(to_integer(x"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
     assert digest = x"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" report "Wrong digest!" severity failure;
 

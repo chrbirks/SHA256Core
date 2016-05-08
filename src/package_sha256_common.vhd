@@ -6,7 +6,7 @@
 -- Author     :   <chrbirks@CHRBIRKS-PC>
 -- Company    : 
 -- Created    : 2016-05-01
--- Last update: 2016-05-01
+-- Last update: 2016-05-08
 -- Platform   : 
 -- Standard   : VHDL'08
 -------------------------------------------------------------------------------
@@ -25,6 +25,19 @@ use ieee.numeric_std.all;
 
 package package_sha256_common is
 
+  type working_vars is record
+    a   : unsigned(31 downto 0);
+    b   : unsigned(31 downto 0);
+    c   : unsigned(31 downto 0);
+    d   : unsigned(31 downto 0);
+    e   : unsigned(31 downto 0);
+    f   : unsigned(31 downto 0);
+    g   : unsigned(31 downto 0);
+    h   : unsigned(31 downto 0);
+    T_1 : unsigned(31 downto 0);
+    T_2 : unsigned(31 downto 0);
+  end record;
+
   constant c_H0 : unsigned(31 downto 0) := x"6A09E667";
   constant c_H1 : unsigned(31 downto 0) := x"BB67AE85";
   constant c_H2 : unsigned(31 downto 0) := x"3C6EF372";
@@ -36,9 +49,9 @@ package package_sha256_common is
 
   type t_word_array is array (0 to 63) of unsigned(31 downto 0);
   constant c_K : t_word_array :=
-    (0  => x"428a2f98", 1  => x"71374491", 2  => x"b5c0fbcf", 3  => x"e9b5dba5",
-     4  => x"3956c25b", 5  => x"59f111f1", 6  => x"923f82a4", 7  => x"ab1c5ed5",
-     8  => x"d807aa98", 9  => x"12835b01", 10 => x"243185be", 11 => x"550c7dc3",
+    (0  => x"428a2f98", 1 => x"71374491", 2 => x"b5c0fbcf", 3 => x"e9b5dba5",
+     4  => x"3956c25b", 5 => x"59f111f1", 6 => x"923f82a4", 7 => x"ab1c5ed5",
+     8  => x"d807aa98", 9 => x"12835b01", 10 => x"243185be", 11 => x"550c7dc3",
      12 => x"72be5d74", 13 => x"80deb1fe", 14 => x"9bdc06a7", 15 => x"c19bf174",
      16 => x"e49b69c1", 17 => x"efbe4786", 18 => x"0fc19dc6", 19 => x"240ca1cc",
      20 => x"2de92c6f", 21 => x"4a7484aa", 22 => x"5cb0a9dc", 23 => x"76f988da",
@@ -70,7 +83,24 @@ package package_sha256_common is
 
   function Maj (x, y, z : unsigned(31 downto 0))
     return unsigned;
-  
+
+  --function digest (d : working_vars)
+  --  return working_vars;
+
+  procedure digest_proc (
+    constant c_K : in    unsigned(31 downto 0);
+    variable w   : in    unsigned(31 downto 0);
+    variable a   : inout unsigned(31 downto 0);
+    variable b   : inout unsigned(31 downto 0);
+    variable c   : inout unsigned(31 downto 0);
+    variable d   : inout unsigned(31 downto 0);
+    variable e   : inout unsigned(31 downto 0);
+    variable f   : inout unsigned(31 downto 0);
+    variable g   : inout unsigned(31 downto 0);
+    variable h   : inout unsigned(31 downto 0);
+    variable T_1 : inout unsigned(31 downto 0);
+    variable T_2 : inout unsigned(31 downto 0));
+
 end package package_sha256_common;
 
 package body package_sha256_common is
@@ -116,6 +146,39 @@ package body package_sha256_common is
   begin
     return (x and y) or (x and z) or (y and z);
   end Maj;
+
+  --function digest (
+  --  signal d : working_vars)
+  --  return working_vars is
+  --begin  -- function digest
+  --  return (d.a, d.b, d.c, d.d, d.e, d.f, d.g, d.h, d.T_1, d.T_2);
+  --end function digest;
+
+  procedure digest_proc (
+    constant c_K : in    unsigned(31 downto 0);
+    variable w   : in    unsigned(31 downto 0);
+    variable a   : inout unsigned(31 downto 0);
+    variable b   : inout unsigned(31 downto 0);
+    variable c   : inout unsigned(31 downto 0);
+    variable d   : inout unsigned(31 downto 0);
+    variable e   : inout unsigned(31 downto 0);
+    variable f   : inout unsigned(31 downto 0);
+    variable g   : inout unsigned(31 downto 0);
+    variable h   : inout unsigned(31 downto 0);
+    variable T_1 : inout unsigned(31 downto 0);
+    variable T_2 : inout unsigned(31 downto 0)) is
+  begin  -- procedure digest
+    T_1 := h + sigma_1_upper(e) + Ch(e, f, g) + c_K + w;
+    T_2 := sigma_0_upper(a) + Maj(a, b, c);
+    h   := g;
+    g   := f;
+    f   := e;
+    e   := d + T_1;
+    d   := c;
+    c   := b;
+    b   := a;
+    a   := T_1 + T_2;
+  end procedure digest_proc;
 
 end package body package_sha256_common;
 
