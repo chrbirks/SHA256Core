@@ -72,7 +72,7 @@ begin
 
   assert g_msg_size < 447 report "Input message wrong length" severity failure;
 
-  p_state_memory : process(clk, counter, reset) is
+  p_state_memory : process(clk) is
   begin
     if (rising_edge(clk)) then
 
@@ -99,7 +99,7 @@ begin
   -- Delay through the pipeline is 68 clock cycles. Delay message_valid by 68
   -- clock cycles and make it assert digest_valid.
   -----------------------------------------------------------------------------
-  p_valid : process(clk, reset) is
+  p_valid : process(clk) is
   begin
     if (rising_edge(clk)) then
 
@@ -149,7 +149,7 @@ begin
         T_2_out => T_2(i+1));
   end generate digest_loop;
 
-  p_hash : process(clk, reset) is
+  p_hash : process(clk) is
     variable message_zero_padded : unsigned(c_block_size-1 downto 0) := (others => '0');
     --variable w_int : t_word_array := (others => (others => '0'));
   begin
