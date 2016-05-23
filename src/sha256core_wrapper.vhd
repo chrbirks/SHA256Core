@@ -34,6 +34,7 @@ architecture str of sha256core_wrapper is
   constant c_msg_size   : integer  := 24;
   constant c_digest_ref : unsigned := x"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";  -- For message x"616263"
 
+  signal clk_200mhz    : std_logic := '0';
   signal reset         : std_logic                       := '0';
   signal message       : unsigned(c_msg_size-1 downto 0) := (others => '0');
   signal message_valid : std_logic                       := '1';

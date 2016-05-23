@@ -6,7 +6,7 @@
 -- Author     :   <chrbi_000@SURFACE>
 -- Company    :
 -- Created    : 2016-04-08
--- Last update: 2016-05-08
+-- Last update: 2016-05-23
 -- Platform   :
 -- Standard   : VHDL'08
 -------------------------------------------------------------------------------
@@ -46,6 +46,7 @@ architecture rtl_3 of sha256core_top is
   constant c_length_size : integer                                                    := 64;
   constant c_zeros       : unsigned(c_block_size-g_msg_size-c_length_size-2 downto 0) := (others => '0');
 
+  -- Array for determining when output is valid. LSB is strobe for valid output
   signal message_valid_array : std_logic_vector(66 downto 0) := (others => '0');
 
   signal counter : integer range 0 to 67;
@@ -96,7 +97,7 @@ begin
   end process p_state_memory;
 
   -----------------------------------------------------------------------------
-  -- Delay through the pipeline is 68 clock cycles. Delay message_valid by 68
+  -- Delay through the pipeline is 67 clock cycles. Delay message_valid by 67
   -- clock cycles and make it assert digest_valid.
   -----------------------------------------------------------------------------
   p_valid : process(clk) is
@@ -106,18 +107,19 @@ begin
       -- Shift right and pad with incoming message_valid
       message_valid_array <= message_valid & message_valid_array(message_valid_array'length-1 downto 1);
       digest_valid        <= message_valid_array(1);
+      message_ready       <= '1';
 
       if (reset = '1') then
         message_valid_array <= (others => '0');
         digest_valid        <= '0';
+        message_ready       <= '0';
       end if;
     end if;
   end process p_valid;
 
   -----------------------------------------------------------------------------
   -- Pipelining calculation of all working variables.
-  --
-  -- IMPORTANT: input is i, output is i+1, so final output is a(64), b(64), etc.
+  -- Input is i, output is i+1, so final output is a(64), b(64), etc.
   -----------------------------------------------------------------------------
   digest_loop : for i in 0 to 63 generate
   begin
@@ -126,6 +128,7 @@ begin
         K => c_K(i))
       port map (
         clk     => clk,
+        reset   => reset,
         w       => w(i),
         a_in    => a(i),
         b_in    => b(i),
@@ -151,7 +154,7 @@ begin
 
   p_hash : process(clk) is
     variable message_zero_padded : unsigned(c_block_size-1 downto 0) := (others => '0');
-    --variable w_int : t_word_array := (others => (others => '0'));
+  --variable w_int : t_word_array := (others => (others => '0'));
   begin
     if (rising_edge(clk)) then
 
@@ -161,11 +164,11 @@ begin
       -- Cycle 1: Prepare message schedule, FIXME: convert to for-generate?
       for t in 0 to 15 loop
         w(t) <= message_zero_padded(message_zero_padded'left - t*32 downto message_zero_padded'left - t*32 - 31);
-        --w_int(t) := message_zero_padded(message_zero_padded'left - t*32 downto message_zero_padded'left - t*32 - 31);
+      --w_int(t) := message_zero_padded(message_zero_padded'left - t*32 downto message_zero_padded'left - t*32 - 31);
       end loop;
       for t in 16 to 63 loop
         w(t) <= sigma_1_lower(w(t-2)) + w(t-7) + sigma_0_lower(w(t-15)) + w(t-16);
-        --w_int(t) := sigma_1_lower(w(t-2)) + w(t-7) + sigma_0_lower(w(t-15)) + w(t-16);
+      --w_int(t) := sigma_1_lower(w(t-2)) + w(t-7) + sigma_0_lower(w(t-15)) + w(t-16);
       end loop;
       --w <= w_int;
 
@@ -350,24 +353,24 @@ begin
       end loop;
 
       -- Cycle ??
-      
+
       --for t in 0 to 63 loop
       --  digest (
       --    d => );
-        
-        --digest (
-        --  --i   => t,
-        --  w   => w(t),
-        --  a   => a,
-        --  b   => b,
-        --  c   => c,
-        --  d   => d,
-        --  e   => e,
-        --  f   => f,
-        --  g   => g,
-        --  h   => h,
-        --  T_1 => T_1,
-        --  T_2 => T_2);
+
+      --digest (
+      --  --i   => t,
+      --  w   => w(t),
+      --  a   => a,
+      --  b   => b,
+      --  c   => c,
+      --  d   => d,
+      --  e   => e,
+      --  f   => f,
+      --  g   => g,
+      --  h   => h,
+      --  T_1 => T_1,
+      --  T_2 => T_2);
       --end loop;
 
 
@@ -518,6 +521,7 @@ begin
         K => c_K(i))
       port map (
         clk     => clk,
+        reset   => reset,
         w       => w(i),
         a_in    => a(i),
         b_in    => b(i),

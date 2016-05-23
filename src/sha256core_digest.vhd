@@ -6,7 +6,7 @@
 -- Author     :   <chrbirks@CHRBIRKS-PC>
 -- Company    : 
 -- Created    : 2016-04-24
--- Last update: 2016-05-01
+-- Last update: 2016-05-23
 -- Platform   : 
 -- Standard   : VHDL'08
 -------------------------------------------------------------------------------
@@ -29,6 +29,7 @@ entity digester is
     k : unsigned(31 downto 0));
   port (
     clk     : in  std_logic;
+    reset   : in  std_logic;
     w       : in  unsigned(31 downto 0);
     a_in    : in  unsigned(31 downto 0);
     b_in    : in  unsigned(31 downto 0);
@@ -72,6 +73,19 @@ begin
       c_out   <= b_in;
       b_out   <= a_in;
       a_out   <= T_1 + T_2;
+
+      if reset = '1' then
+        a_out   <= (others => '0');
+        b_out   <= (others => '0');
+        c_out   <= (others => '0');
+        d_out   <= (others => '0');
+        e_out   <= (others => '0');
+        f_out   <= (others => '0');
+        g_out   <= (others => '0');
+        h_out   <= (others => '0');
+        T_1_out <= (others => '0');
+        T_2_out <= (others => '0');
+      end if;
     end if;
   end process;
 
