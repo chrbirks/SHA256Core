@@ -6,7 +6,7 @@
 -- Author     :   <chrbi_000@SURFACE>
 -- Company    :
 -- Created    : 2016-04-08
--- Last update: 2016-05-23
+-- Last update: 2016-05-24
 -- Platform   :
 -- Standard   : VHDL'08
 -------------------------------------------------------------------------------
@@ -46,10 +46,15 @@ architecture rtl_3 of sha256core_top is
   constant c_length_size : integer                                                    := 64;
   constant c_zeros       : unsigned(c_block_size-g_msg_size-c_length_size-2 downto 0) := (others => '0');
 
-  -- Array for determining when output is valid. LSB is strobe for valid output
-  signal message_valid_array : std_logic_vector(66 downto 0) := (others => '0');
+  type t_fsm_state is (s_wait, s_processing);
+  signal cur_state  : t_fsm_state;
+  signal next_state : t_fsm_state;
 
-  signal counter : integer range 0 to 67;
+  signal digest_valid_int    : std_logic                       := '0';
+  -- Array for determining when output is valid. LSB is strobe for valid output
+  signal message_valid_array : std_logic_vector(64 downto 0) := (others => '0');
+
+  signal counter : integer range 0 to 66;
 
   --signal reset : std_logic;
   --signal message_zero_padded   : unsigned(c_block_size-1 downto 0) := (others => '0');
@@ -73,28 +78,93 @@ begin
 
   assert g_msg_size < 447 report "Input message wrong length" severity failure;
 
-  p_state_memory : process(clk) is
+  p_main : process(clk)
   begin
-    if (rising_edge(clk)) then
+    if rising_edge(clk) then
+      cur_state <= next_state;
 
-      --cur_state <= next_state;
-
-      counter <= counter + 1;
-      --digest_valid <= '0';
-
-      if (counter = 66) then
-        counter <= 0;
-      --digest_valid <= '1';
+      if reset = '1' then
+        cur_state <= s_wait;
       end if;
-
-      if (reset = '1') then
-        --cur_state <= s_init;
-        counter <= 0;
-      --digest_valid <= '0';
-      end if;
-    --
     end if;
-  end process p_state_memory;
+  end process p_main;
+
+  digest_valid <= digest_valid_int;
+
+  p_fsm : process(counter, cur_state, digest_valid_int, message_valid)
+  begin
+    case cur_state is
+
+      when s_wait =>
+        if message_valid = '1' then
+          --counter    <= counter + 1;
+          next_state <= s_processing;
+        else
+          --counter    <= counter;
+          next_state <= s_wait;
+        end if;
+
+      when s_processing =>
+        if digest_valid_int = '1' then
+          --counter    <= 0;
+          next_state <= s_wait;
+        else
+          --counter    <= counter + 1;
+          next_state <= s_processing;
+        end if;
+
+      when others => null;
+
+    end case;
+  end process p_fsm;
+
+  p_counter : process(clk)
+  begin
+    if rising_edge(clk) then
+
+      case cur_state is
+        when s_wait =>
+          counter <= 0;
+        when s_processing =>
+          counter <= counter + 1;
+        when others => null;
+      end case;
+
+      -- if counter = 64 then
+      --   digest_valid_int <= '1';
+      -- else
+      --   digest_valid_int <= '0';
+      -- end if;
+
+      if reset = '1' then
+        counter <= 0;
+      end if;
+
+    end if;
+  end process p_counter;
+
+  -- p_state_memory : process(clk) is
+  -- begin
+  --   if (rising_edge(clk)) then
+
+  --     --cur_state <= next_state;
+
+  --     --counter <= counter + 1;
+  --     --digest_valid <= '0';
+
+  --     if (counter = 66) then
+  --       counter <= 0;
+  --     --digest_valid <= '1';
+  --     end if;
+
+  --     if (reset = '1') then
+  --       --cur_state <= s_init;
+  --       counter <= 0;
+  --     --digest_valid <= '0';
+  --     end if;
+  --   --
+  --   end if;
+  -- end process p_state_memory;
 
   -----------------------------------------------------------------------------
   -- Delay through the pipeline is 67 clock cycles. Delay message_valid by 67
@@ -106,12 +176,12 @@ begin
 
       -- Shift right and pad with incoming message_valid
       message_valid_array <= message_valid & message_valid_array(message_valid_array'length-1 downto 1);
-      digest_valid        <= message_valid_array(1);
+      digest_valid_int    <= message_valid_array(0);
       message_ready       <= '1';
 
       if (reset = '1') then
         message_valid_array <= (others => '0');
-        digest_valid        <= '0';
+        digest_valid_int        <= '0';
         message_ready       <= '0';
       end if;
     end if;
@@ -245,7 +315,7 @@ begin
 
   assert g_msg_size < 447 report "Input message wrong length" severity failure;
 
-  p_state_memory : process(clk, counter, reset) is
+  p_state_memory : process(clk) is
   begin
     if (rising_edge(clk)) then
 
@@ -272,7 +342,7 @@ begin
   -- Delay through the pipeline is 68 clock cycles. Delay message_valid by 68
   -- clock cycles and make it assert digest_valid.
   -----------------------------------------------------------------------------
-  p_valid : process(clk, reset) is
+  p_valid : process(clk) is
   begin
     if (rising_edge(clk)) then
 
@@ -322,7 +392,7 @@ begin
   --      T_2_out => T_2(i+1));
   --end generate digest_loop;
 
-  p_hash : process(clk, reset) is
+  p_hash : process(clk) is
     variable w : t_word_array := (others => (others => '0'));
 
     --type t_working_word_array is array (0 to 64) of unsigned(31 downto 0);
@@ -414,10 +484,6 @@ architecture rtl_1 of sha256core_top is
   constant c_length_size : integer                                                    := 64;
   constant c_zeros       : unsigned(c_block_size-g_msg_size-c_length_size-2 downto 0) := (others => '0');
 
-  --type t_fsm_state is (s_init, s_1, s_2);
-  --signal cur_state  : t_fsm_state;
-  --signal next_state : t_fsm_state;
-
   signal message_valid_array : std_logic_vector(66 downto 0) := (others => '0');
 
   signal counter : integer range 0 to 67;
@@ -444,11 +510,10 @@ begin
 
   assert g_msg_size < 447 report "Input message wrong length" severity failure;
 
-  p_state_memory : process(clk, counter, reset) is
+  p_state_memory : process(clk) is
   begin
     if (rising_edge(clk)) then
 
-      --cur_state <= next_state;
 
       counter <= counter + 1;
       --digest_valid <= '0';
@@ -471,7 +536,7 @@ begin
   -- Delay through the pipeline is 68 clock cycles. Delay message_valid by 68
   -- clock cycles and make it assert digest_valid.
   -----------------------------------------------------------------------------
-  p_valid : process(clk, reset) is
+  p_valid : process(clk) is
   begin
     if (rising_edge(clk)) then
 
@@ -487,8 +552,8 @@ begin
   end process p_valid;
 
 
-  --p_state_logic : process(cur_state, message_valid, counter)
-  --begin
+  -- p_state_logic : process(cur_state, message_valid, counter)
+  -- begin
   --  case cur_state is
   --    when s_init =>
   --      if message_valid = '1' then
@@ -507,7 +572,7 @@ begin
   --    when others =>
   --      next_state <= s_init;
   --  end case;
-  --end process p_state_logic;
+  -- end process p_state_logic;
 
   -----------------------------------------------------------------------------
   -- Pipelining calculation of all working variables.
@@ -545,7 +610,7 @@ begin
         T_2_out => T_2(i+1));
   end generate digest_loop;
 
-  p_hash : process(clk, reset) is
+  p_hash : process(clk) is
     variable message_zero_padded : unsigned(c_block_size-1 downto 0) := (others => '0');
   begin
     if (rising_edge(clk)) then
