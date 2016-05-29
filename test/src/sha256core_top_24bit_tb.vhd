@@ -6,7 +6,7 @@
 -- Author     :   <chrbi_000@SURFACE>
 -- Company    :
 -- Created    : 2016-04-08
--- Last update: 2016-05-08
+-- Last update: 2016-05-29
 -- Platform   :
 -- Standard   : VHDL'08
 -------------------------------------------------------------------------------
@@ -23,29 +23,29 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
--------------------------------------------------------------------------------
-
-entity sha256core_top_tb is
-end entity sha256core_top_tb;
+library std;
+use std.env.all;
 
 -------------------------------------------------------------------------------
 
-architecture bhv of sha256core_top_tb is
+entity sha256core_top_24bit_tb is
+end entity sha256core_top_24bit_tb;
+
+-------------------------------------------------------------------------------
+
+architecture bhv of sha256core_top_24bit_tb is
 
   -- constants
   constant c_200mhz_clk_period : time := 5 ns;
 
-  -- component generics
-  constant c_msg_size : integer := 24;  --256;
-
   -- component ports
   signal reset         : std_logic;
-  signal message       : unsigned(c_msg_size-1 downto 0) := (others => '0');
-  signal message_valid : std_logic                       := '0';
+  signal message       : unsigned(23 downto 0) := (others => '0');
+  signal message_valid : std_logic             := '0';
   signal message_ready : std_logic;
   signal digest        : unsigned(255 downto 0);
   signal digest_valid  : std_logic;
-  signal digest_ready  : std_logic                       := '0';
+  signal digest_ready  : std_logic             := '0';
 
   -- clock
   signal clk_200mhz_tb : std_logic := '0';
@@ -55,7 +55,7 @@ begin  -- architecture bhv
   -- component instantiation
   DUT : entity work.sha256core_top(rtl_3)
     generic map (
-      g_msg_size => c_msg_size)
+      g_msg_size => 24)
     port map (
       clk           => clk_200mhz_tb,   -- in
       reset         => reset,           -- in
@@ -70,10 +70,9 @@ begin  -- architecture bhv
   clk_200mhz_tb <= not clk_200mhz_tb after c_200mhz_clk_period/2;
 
   -- waveform generation
-  WaveGen_Proc : process
+  p_stimuli : process
   begin
     reset   <= '1';
-    --digest_ready <= '0';
     message <= x"616263";               -- "abc"
 
     wait until clk_200mhz_tb = '1';
@@ -83,17 +82,13 @@ begin  -- architecture bhv
     wait until clk_200mhz_tb = '1';
     reset <= '0';
 
-    --wait until clk_200mhz_tb = '1';
-
     if (message_ready = '0') then
       wait until clk_200mhz_tb = '1' and message_ready = '1';
     end if;
 
     message_valid <= '1';
     digest_ready  <= '1';
-
     wait until clk_200mhz_tb = '1';
-
     message_valid <= '0';
 
     wait until digest_valid = '1';
@@ -101,14 +96,53 @@ begin  -- architecture bhv
 --    report "      and ref is " & integer'image(to_integer(x"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
     assert digest = x"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" report "Wrong digest!" severity failure;
 
-    -- TODO: Test new message in next clock cycle
-    --message <= x"636261"; -- "cba"
-    -- TODO: assert that digest = 6d970874d0db767a7058798973f22cf6589601edab57996312f2ef7b56e5584d
+    ---------------------------------------------------------------------------
+    -- Test new message
+    ---------------------------------------------------------------------------
+    message       <= x"636261";         -- "cba"
+    message_valid <= '1';
+
+    if message_ready = '0' then
+      wait until clk_200mhz_tb = '1' and message_ready = '1';
+    end if;
+
+    wait until clk_200mhz_tb = '1';
+    message_valid <= '0';
+
+    wait until digest_valid = '1';
+    assert digest = x"6d970874d0db767a7058798973f22cf6589601edab57996312f2ef7b56e5584d" report "Wrong digest!" severity failure;
+
+    ---------------------------------------------------------------------------
+    -- Test new message
+    ---------------------------------------------------------------------------
+    --wait until clk_200mhz_tb = '1';
+
+    message       <= x"06af3f";
+    message_valid <= '1';
+
+    if message_ready = '0' then
+      wait until clk_200mhz_tb = '1' and message_ready = '1';
+    end if;
+
+    wait until clk_200mhz_tb = '1';
+    message_valid <= '0';
+
+    wait until digest_valid = '1';
+    --assert digest = x"05aa2d120337bf301d320fb001fc90a8bdce5d637bad374996a9d282d313f8e7" report "Wrong digest!" severity failure;
+
+    ---------------------------------------------------------------------------
+    -- Finish testbench
+    ---------------------------------------------------------------------------
+    digest_ready <= '0';
+
+    wait for 10*c_200mhz_clk_period;
+    reset <= '1';
 
     -- End testbench
     wait for 100*c_200mhz_clk_period;
-    report "Simulation finished" severity failure;
-  end process WaveGen_Proc;
+    --report "Simulation finished" severity failure;
+    stop(2);
+  end process p_stimuli;
 
 
 
@@ -116,9 +150,9 @@ end architecture bhv;
 
 -------------------------------------------------------------------------------
 
-configuration sha256core_top_tb_bhv_cfg of sha256core_top_tb is
-  for bhv
-  end for;
-end sha256core_top_tb_bhv_cfg;
+-- configuration sha256core_top_tb_bhv_cfg of sha256core_top_tb is
+--   for bhv
+--   end for;
+-- end sha256core_top_tb_bhv_cfg;
 
 -------------------------------------------------------------------------------
