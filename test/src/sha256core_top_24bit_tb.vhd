@@ -6,7 +6,7 @@
 -- Author     :   <chrbi_000@SURFACE>
 -- Company    :
 -- Created    : 2016-04-08
--- Last update: 2016-05-29
+-- Last update: 2016-06-05
 -- Platform   :
 -- Standard   : VHDL'08
 -------------------------------------------------------------------------------
@@ -115,7 +115,7 @@ begin  -- architecture bhv
     ---------------------------------------------------------------------------
     -- Test new message
     ---------------------------------------------------------------------------
-    --wait until clk_200mhz_tb = '1';
+    wait until clk_200mhz_tb = '1';
 
     message       <= x"06af3f";
     message_valid <= '1';
@@ -128,7 +128,7 @@ begin  -- architecture bhv
     message_valid <= '0';
 
     wait until digest_valid = '1';
-    --assert digest = x"05aa2d120337bf301d320fb001fc90a8bdce5d637bad374996a9d282d313f8e7" report "Wrong digest!" severity failure;
+    assert digest = x"d9d4786ae228f2c62bed8132c8975443cd6ce72b4aa81329566e8effa5efda6b" report "Wrong digest!" severity failure;
 
     ---------------------------------------------------------------------------
     -- Finish testbench

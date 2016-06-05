@@ -6,7 +6,7 @@
 -- Author     :   <chrbi_000@SURFACE>
 -- Company    :
 -- Created    : 2016-04-08
--- Last update: 2016-05-29
+-- Last update: 2016-06-05
 -- Platform   :
 -- Standard   : VHDL'08
 -------------------------------------------------------------------------------
@@ -53,7 +53,7 @@ architecture rtl_3 of sha256core_top is
   signal digest_valid_int    : std_logic                     := '0';
   signal message_ready_int   : std_logic                     := '0';
   -- Array for determining when output is valid. LSB is strobe for valid output
-  signal message_valid_array : std_logic_vector(65 downto 0) := (others => '0');
+  signal message_valid_array : std_logic_vector(64 downto 0) := (others => '0');
 
   signal counter : integer range 0 to 67;
 

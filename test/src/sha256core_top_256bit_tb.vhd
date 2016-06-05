@@ -6,7 +6,7 @@
 -- Author     :   <chrbi_000@SURFACE>
 -- Company    :
 -- Created    : 2016-04-08
--- Last update: 2016-05-29
+-- Last update: 2016-06-05
 -- Platform   :
 -- Standard   : VHDL'08
 -------------------------------------------------------------------------------
@@ -72,6 +72,9 @@ begin  -- architecture bhv
   -- waveform generation
   p_stimuli : process
   begin
+    reset <= '0';
+    wait for 15*c_200mhz_clk_period;
+    
     reset   <= '1';
     message <= x"0938af467801b236fe6934bd5ad1af14e1ee581c578af6a7f6960ef9d0b2b632";
 
@@ -94,11 +97,13 @@ begin  -- architecture bhv
     wait until digest_valid = '1';
     --report "signal digest is " & integer'image(to_integer(digest));
 --    report "      and ref is " & integer'image(to_integer(x"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
-    assert digest = x"52b416c05af3d55b20e4e9b414ff29974bbf8c39493bb819d39e53e3884ccd8d" report "Wrong digest!" severity failure;
+    assert digest = x"62af7ca6e27463459f00298a88d877cf49621b5c41a9c9182cc4d529c0a735f0" report "Wrong digest!" severity failure;
 
     ---------------------------------------------------------------------------
     -- Test new message
     ---------------------------------------------------------------------------
+    --wait until clk_200mhz_tb = '1';
+
     message       <= x"8324e234b35256bb3b4ff8a2c092af144385c69c967e7155a1318844578f2dc6";
     message_valid <= '1';
 
@@ -110,11 +115,12 @@ begin  -- architecture bhv
     message_valid <= '0';
 
     wait until digest_valid = '1';
-    assert digest = x"ff00f958e7f93bd8cd9221edc28a47fe79f076582f1d08e70609635251de5da2" report "Wrong digest!" severity failure;
+    assert digest = x"60c4c785867f11cd2c29738ff33ef4eb53c2026a87247d7075bfaf41edcf0db9" report "Wrong digest!" severity failure;
 
     ---------------------------------------------------------------------------
     -- Test new message
     ---------------------------------------------------------------------------
+    wait for 10*c_200mhz_clk_period;
     wait until clk_200mhz_tb = '1';
 
     message       <= x"f94618597b88254519c76b9bd0708ee4bc7e95c9b2d03e9080b19a13e44d9edd";
@@ -128,7 +134,7 @@ begin  -- architecture bhv
     message_valid <= '0';
 
     wait until digest_valid = '1';
-    assert digest = x"fd05a95137488cb332fe28909beb62fee85bb886a652320b8e994bf96cde0620" report "Wrong digest!" severity failure;
+    assert digest = x"24c378aa3e1efe32f689f131cdb97704916ff430dfff31ed1ee3a0c84958602e" report "Wrong digest!" severity failure;
 
     ---------------------------------------------------------------------------
     -- Finish testbench
