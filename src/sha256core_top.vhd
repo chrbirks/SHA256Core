@@ -6,7 +6,7 @@
 -- Author     :   <chrbi_000@SURFACE>
 -- Company    :
 -- Created    : 2016-04-08
--- Last update: 2016-06-05
+-- Last update: 2016-06-12
 -- Platform   :
 -- Standard   : VHDL'08
 -------------------------------------------------------------------------------
@@ -46,7 +46,7 @@ architecture rtl_3 of sha256core_top is
   constant c_length_size : integer                                                    := 64;
   constant c_zeros       : unsigned(c_block_size-g_msg_size-c_length_size-2 downto 0) := (others => '0');
 
-  type t_fsm_state is (s_wait, s_init, s_processing);
+  type t_fsm_state is (s_wait, s_init, s_processing, s_digest_valid);
   signal cur_state  : t_fsm_state;
   signal next_state : t_fsm_state;
 
@@ -93,7 +93,7 @@ begin
   digest_valid  <= digest_valid_int;
   message_ready <= message_ready_int;
 
-  p_fsm : process(counter, cur_state, digest_valid_int, message_valid)
+  p_fsm : process(cur_state, digest_ready, digest_valid_int, message_valid)
   begin
     case cur_state is
 
@@ -109,9 +109,20 @@ begin
 
       when s_processing =>
         if digest_valid_int = '1' then
-          next_state <= s_wait;
+          if digest_ready = '1' then
+            next_state <= s_wait;
+          else
+            next_state <= s_digest_valid;
+          end if;
         else
           next_state <= s_processing;
+        end if;
+
+      when s_digest_valid =>
+        if digest_ready = '1' then
+          next_state <= s_wait;
+        else
+          next_state <= s_digest_valid;
         end if;
 
       when others =>
@@ -127,18 +138,17 @@ begin
       case cur_state is
 
         when s_wait =>
-          --if message_valid = '1' then
-          --  message_ready <= '0';
-          --else
-          message_ready_int <= '1';
-          --end if;
+          if message_valid = '1' then
+            message_ready_int <= '0';
+          else
+            message_ready_int <= '1';
+          end if;
 
         when s_init =>
           message_ready_int <= '0';
-        -- when s_processing =>
-        --   message_ready <= '0';
+
         when others =>
-          null;
+          null;                         -- FIXME: Latches created here?
 
       end case;
 
@@ -177,6 +187,7 @@ begin
   -- clock cycles and make it assert digest_valid.
   -----------------------------------------------------------------------------
   p_valid : process(clk) is
+    variable digest_valid_hold : std_logic := '0';
   begin
     if (rising_edge(clk)) then
 
@@ -185,13 +196,14 @@ begin
 
       case cur_state is
         when s_wait =>
-          null;
+          message_valid_array <= (others => '0');
         when s_init =>
           message_valid_array <= (message_valid_array'left => '1', others => '0');
         when s_processing =>
           -- Shift right and pad with 0
           message_valid_array <= '0' & message_valid_array(message_valid_array'length-1 downto 1);
-        when others => message_valid_array <= (0 => '1', others => '0');
+        when s_digest_valid =>
+          message_valid_array <= (message_valid_array'right => '1', others => '0');
       end case;
 
       digest_valid_int <= message_valid_array(0);

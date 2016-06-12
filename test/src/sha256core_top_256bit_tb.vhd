@@ -6,7 +6,7 @@
 -- Author     :   <chrbi_000@SURFACE>
 -- Company    :
 -- Created    : 2016-04-08
--- Last update: 2016-06-05
+-- Last update: 2016-06-12
 -- Platform   :
 -- Standard   : VHDL'08
 -------------------------------------------------------------------------------
@@ -99,17 +99,20 @@ begin  -- architecture bhv
 --    report "      and ref is " & integer'image(to_integer(x"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
     assert digest = x"62af7ca6e27463459f00298a88d877cf49621b5c41a9c9182cc4d529c0a735f0" report "Wrong digest!" severity failure;
 
+    wait for 10*c_200mhz_clk_period;
+    
     ---------------------------------------------------------------------------
     -- Test new message
     ---------------------------------------------------------------------------
     --wait until clk_200mhz_tb = '1';
 
     message       <= x"8324e234b35256bb3b4ff8a2c092af144385c69c967e7155a1318844578f2dc6";
-    message_valid <= '1';
+    message_valid <= '0';
 
-    if message_ready = '0' then
-      wait until clk_200mhz_tb = '1' and message_ready = '1';
+    if (message_ready = '0') then
+      wait until (clk_200mhz_tb = '1') and (message_ready = '1');
     end if;
+    message_valid <= '1';
 
     wait until clk_200mhz_tb = '1';
     message_valid <= '0';
@@ -117,6 +120,8 @@ begin  -- architecture bhv
     wait until digest_valid = '1';
     assert digest = x"60c4c785867f11cd2c29738ff33ef4eb53c2026a87247d7075bfaf41edcf0db9" report "Wrong digest!" severity failure;
 
+    wait for 10*c_200mhz_clk_period;
+    
     ---------------------------------------------------------------------------
     -- Test new message
     ---------------------------------------------------------------------------
@@ -124,11 +129,12 @@ begin  -- architecture bhv
     wait until clk_200mhz_tb = '1';
 
     message       <= x"f94618597b88254519c76b9bd0708ee4bc7e95c9b2d03e9080b19a13e44d9edd";
-    message_valid <= '1';
+    message_valid <= '0';
 
     if message_ready = '0' then
       wait until clk_200mhz_tb = '1' and message_ready = '1';
     end if;
+    message_valid <= '1';
 
     wait until clk_200mhz_tb = '1';
     message_valid <= '0';

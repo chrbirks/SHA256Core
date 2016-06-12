@@ -6,7 +6,7 @@
 -- Author     :   <chrbi_000@SURFACE>
 -- Company    :
 -- Created    : 2016-04-08
--- Last update: 2016-06-05
+-- Last update: 2016-06-06
 -- Platform   :
 -- Standard   : VHDL'08
 -------------------------------------------------------------------------------
@@ -96,9 +96,12 @@ begin  -- architecture bhv
 --    report "      and ref is " & integer'image(to_integer(x"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
     assert digest = x"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" report "Wrong digest!" severity failure;
 
+    wait for 10*c_200mhz_clk_period;
+
     ---------------------------------------------------------------------------
     -- Test new message
     ---------------------------------------------------------------------------
+    digest_ready <= '0';
     message       <= x"636261";         -- "cba"
     message_valid <= '1';
 
@@ -110,7 +113,12 @@ begin  -- architecture bhv
     message_valid <= '0';
 
     wait until digest_valid = '1';
+    wait for 10*c_200mhz_clk_period;
+    digest_ready <= '1';
+    wait until clk_200mhz_tb = '1';
     assert digest = x"6d970874d0db767a7058798973f22cf6589601edab57996312f2ef7b56e5584d" report "Wrong digest!" severity failure;
+
+    wait for 10*c_200mhz_clk_period;
 
     ---------------------------------------------------------------------------
     -- Test new message
