@@ -9,5 +9,7 @@ vcom -reportprogress 300 -work work I:/Dropbox/Projekter/FPGA/SHA256Core/src/sha
 vcom -reportprogress 300 -work work I:/Dropbox/Projekter/FPGA/SHA256Core/src/sha256core_top.vhd
 vcom -reportprogress 300 -work work I:/Dropbox/Projekter/FPGA/SHA256Core/test/src/sha256core_top_24bit_tb.vhd
 
+vsim work.sha256core_top_24bit_tb
+
 restart -f
 run -all

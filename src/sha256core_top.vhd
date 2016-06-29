@@ -6,7 +6,7 @@
 -- Author     :   <chrbi_000@SURFACE>
 -- Company    :
 -- Created    : 2016-04-08
--- Last update: 2016-06-12
+-- Last update: 2016-06-29
 -- Platform   :
 -- Standard   : VHDL'08
 -------------------------------------------------------------------------------
@@ -187,12 +187,8 @@ begin
   -- clock cycles and make it assert digest_valid.
   -----------------------------------------------------------------------------
   p_valid : process(clk) is
-    variable digest_valid_hold : std_logic := '0';
   begin
     if (rising_edge(clk)) then
-
-      -- TODO: For piplining: Shift right and pad with incoming message_valid
-      -- message_valid_array <= message_valid & message_valid_array(message_valid_array'length-1 downto 1);
 
       case cur_state is
         when s_wait =>
@@ -200,8 +196,12 @@ begin
         when s_init =>
           message_valid_array <= (message_valid_array'left => '1', others => '0');
         when s_processing =>
-          -- Shift right and pad with 0
-          message_valid_array <= '0' & message_valid_array(message_valid_array'length-1 downto 1);
+          -- Shift right and pad with 0 but hold value at the end
+          if message_valid_array(0) = '1' then
+            message_valid_array <= (message_valid_array'right => '1', others => '0');
+          else
+            message_valid_array <= '0' & message_valid_array(message_valid_array'length-1 downto 1);
+          end if;
         when s_digest_valid =>
           message_valid_array <= (message_valid_array'right => '1', others => '0');
       end case;
@@ -211,7 +211,6 @@ begin
       if (reset = '1') then
         message_valid_array <= (others => '0');
         digest_valid_int    <= '0';
-      --message_ready       <= '0';
       end if;
     end if;
   end process p_valid;
